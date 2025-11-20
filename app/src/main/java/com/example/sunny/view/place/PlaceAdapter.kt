@@ -8,7 +8,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.sunny.databinding.PlaceItemBinding
 import com.example.sunny.model.CityResult
 
-class PlaceAdapter(private val cityList: MutableList<CityResult>) : RecyclerView.Adapter<PlaceAdapter.ViewHolder>() {
+class PlaceAdapter(
+    private val cityList: MutableList<CityResult>
+) : RecyclerView.Adapter<PlaceAdapter.ViewHolder>() {
 
     class ViewHolder(val binding: PlaceItemBinding) : RecyclerView.ViewHolder(binding.root)
 
@@ -40,7 +42,10 @@ class PlaceAdapter(private val cityList: MutableList<CityResult>) : RecyclerView
         diffResult.dispatchUpdatesTo(this)
     }
 
-    private fun calculateDiff(oldList: List<CityResult>, newList: List<CityResult>): DiffUtil.DiffResult {
+    private fun calculateDiff(
+        oldList: List<CityResult>,
+        newList: List<CityResult>
+    ): DiffUtil.DiffResult {
         return DiffUtil.calculateDiff(object : DiffUtil.Callback() {
             override fun getOldListSize(): Int = oldList.size
 

@@ -14,12 +14,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Sunny">
         <activity
-            android:name=".view.now.Now"
-            android:exported="false" />
-        <activity
-            android:name=".view.weather.Weather"
-            android:exported="false" />
-        <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
