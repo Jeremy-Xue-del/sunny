@@ -5,10 +5,12 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import android.view.ViewTreeObserver
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.sunny.databinding.FragmentPlaceBinding
+import com.example.sunny.model.CityResult
 import com.example.sunny.service.ApiService
 import com.example.sunny.model.CitySearchResponse
 
@@ -18,7 +20,7 @@ class PlaceFragment : Fragment() {
     private val binding get() = requireNotNull(_binding)
 
     private lateinit var placeAdapter: PlaceAdapter
-    private val cityList = mutableListOf<com.example.sunny.model.CityResult>()
+    private val cityList = mutableListOf<CityResult>()
     private var toast: Toast? = null
 
     override fun onCreateView(
@@ -38,24 +40,12 @@ class PlaceFragment : Fragment() {
     }
 
     private fun setupStatusBarHeight() {
-        binding.statusBarPlaceholder.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
-            override fun onGlobalLayout() {
-                binding.statusBarPlaceholder.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                val statusBarHeight = getStatusBarHeight()
-                val layoutParams = binding.statusBarPlaceholder.layoutParams
-                layoutParams.height = statusBarHeight
-                binding.statusBarPlaceholder.layoutParams = layoutParams
-            }
-        })
-    }
-
-    private fun getStatusBarHeight(): Int {
-        val resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
-        return if (resourceId > 0) {
-            resources.getDimensionPixelSize(resourceId)
-        } else {
-            // 默认高度，约24dp
-            (24 * resources.displayMetrics.density).toInt()
+        ViewCompat.setOnApplyWindowInsetsListener(binding.statusBarPlaceholder) { _, insets ->
+            val statusBarInsets = insets.getInsets(WindowInsetsCompat.Type.statusBars())
+            val layoutParams = binding.statusBarPlaceholder.layoutParams
+            layoutParams.height = statusBarInsets.top
+            binding.statusBarPlaceholder.layoutParams = layoutParams
+            insets
         }
     }
 
@@ -90,14 +80,12 @@ class PlaceFragment : Fragment() {
     }
 
     private fun updateCityList(response: CitySearchResponse) {
-        val oldSize = cityList.size
+        val oldList = cityList.toList()
         cityList.clear()
         response.results?.let { cities ->
             cityList.addAll(cities)
         }
-        if (oldSize != cityList.size || cityList.isNotEmpty()) {
-            placeAdapter.notifyDataSetChanged()
-        }
+        placeAdapter.updateDataWithDiff(oldList, cityList)
         binding.recyclerView.visibility = View.VISIBLE
     }
 
