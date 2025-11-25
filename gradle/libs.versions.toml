@@ -16,6 +16,7 @@ okhttp = "4.12.0"
 glide = "4.12.0"
 gson = "2.10.1"
 fragment = "1.8.9"
+gms = "21.0.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -36,6 +37,7 @@ androidx-okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-inte
 androidx-glide = { group = "com.github.bumptech.glide", name = "glide", version.ref = "glide" }
 androidx-gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 androidx-fragment = { group = "androidx.fragment", name = "fragment", version.ref = "fragment" }
+androidx-gms = { group = "com.google.android.gms", name = "play-services-location", version.ref = "gms" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

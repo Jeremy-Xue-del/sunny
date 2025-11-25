@@ -62,4 +62,5 @@ dependencies {
     implementation(libs.androidx.okhttp.logging)
     implementation(libs.androidx.glide)
     implementation(libs.androidx.gson)
+    implementation(libs.androidx.gms)
 }

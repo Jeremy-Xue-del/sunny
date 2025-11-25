@@ -19,11 +19,11 @@ object ApiService {
     }
 
     fun getCurrentWeather(
-        location: String,
+        city: String,
         language: String = "zh-Hans",
         unit: String = "c",
         callback: (Result<WeatherResponse>) -> Unit
     ) {
-        weatherService.getCurrentWeather(location, language, unit, callback)
+        weatherService.getCurrentWeather(city, language, unit, callback)
     }
 }
