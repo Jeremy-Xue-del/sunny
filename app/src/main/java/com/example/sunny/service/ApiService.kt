@@ -3,27 +3,32 @@ package com.example.sunny.service
 import com.example.sunny.model.CitySearchResponse
 import com.example.sunny.model.WeatherResponse
 import okhttp3.OkHttpClient
+
 object ApiService {
+
     private lateinit var weatherService: WeatherApiService
 
     /**
-     * 初始化 ApiService
+     * 初始化
      */
-    fun initialize(okHttpClient: OkHttpClient, apiKey: String) {
-        this.weatherService = WeatherApiService(okHttpClient, apiKey)
-    }
-
-    // 代理方法
-    fun searchCity(query: String, callback: (Result<CitySearchResponse>) -> Unit) {
-        weatherService.searchCity(query, callback)
-    }
-
-    fun getCurrentWeather(
-        city: String,
-        language: String = "zh-Hans",
-        unit: String = "c",
-        callback: (Result<WeatherResponse>) -> Unit
+    fun initialize(
+        okHttpClient: OkHttpClient,
+        apiKey: String
     ) {
-        weatherService.getCurrentWeather(city, language, unit, callback)
+        weatherService = WeatherApiService(okHttpClient, apiKey)
+    }
+
+    /**
+     * 搜索城市
+     */
+    suspend fun searchCity(query: String): Result<CitySearchResponse> {
+        return weatherService.searchCity(query)
+    }
+
+    /**
+     * 获取实时天气
+     */
+    suspend fun getCurrentWeather(city: String): Result<WeatherResponse> {
+        return weatherService.getCurrentWeather(city)
     }
 }

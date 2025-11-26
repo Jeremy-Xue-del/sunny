@@ -8,11 +8,13 @@ import android.widget.Toast
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.sunny.databinding.FragmentPlaceBinding
 import com.example.sunny.model.CityResult
 import com.example.sunny.service.ApiService
 import com.example.sunny.model.CitySearchResponse
+import kotlinx.coroutines.launch
 
 class PlaceFragment : Fragment() {
 
@@ -68,13 +70,17 @@ class PlaceFragment : Fragment() {
     }
 
     private fun searchCities(query: String) {
-        ApiService.searchCity(query) { result ->
-            activity?.runOnUiThread {
-                result.onSuccess { response ->
-                    updateCityList(response)
-                }.onFailure { error ->
-                    showError(error.message ?: "搜索失败")
-                }
+        viewLifecycleOwner.lifecycleScope.launch {
+            binding.searchPlaceEdit.isEnabled = false
+
+            val result = ApiService.searchCity(query)
+
+            binding.searchPlaceEdit.isEnabled = true
+
+            result.onSuccess {
+                updateCityList(it)
+            }.onFailure {
+                showError(it.message ?: "搜索失败")
             }
         }
     }

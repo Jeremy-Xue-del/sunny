@@ -1,94 +1,100 @@
-// WeatherApiService.kt
 package com.example.sunny.service
 
 import com.example.sunny.model.CitySearchResponse
 import com.example.sunny.model.WeatherResponse
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.HttpUrl
-import okhttp3.Response
 import com.google.gson.Gson
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.IOException
 
-class WeatherApiService(private val client: OkHttpClient, private val apiKey: String) {
+class WeatherApiService(
+    private val client: OkHttpClient,
+    private val apiKey: String
+) {
+
     private val gson = Gson()
 
     /**
-     * 搜索城市信息
+     * 搜索城市（返回 Result）
      */
-    fun searchCity(query: String, callback: (Result<CitySearchResponse>) -> Unit) {
-        makeGetRequest(
-            "location/search.json",
-            mapOf("q" to query),
-            CitySearchResponse::class.java,
-            callback
+    suspend fun searchCity(query: String): Result<CitySearchResponse> =
+        request(
+            endpoint = "location/search.json",
+            params = mapOf("q" to query),
+            classOfT = CitySearchResponse::class.java
         )
-    }
 
     /**
-     * 获取当前天气
+     * 获取实时天气（返回 Result）
      */
-    fun getCurrentWeather(
+    suspend fun getCurrentWeather(
         location: String,
-        language: String = "zh-Hans",
-        unit: String = "c",
-        callback: (Result<WeatherResponse>) -> Unit
-    ) {
-        makeGetRequest(
-            "weather/now.json",
-            mapOf(
+    ): Result<WeatherResponse> =
+        request(
+            endpoint = "weather/now.json",
+            params = mapOf(
                 "location" to location,
-                "language" to language,
-                "unit" to unit
+                "language" to "zh-Hans",
+                "unit" to "c"
             ),
-            WeatherResponse::class.java,
-            callback
+            classOfT = WeatherResponse::class.java
         )
-    }
+
 
     /**
-     * 通用GET请求方法
+     * 通用请求方法（统一变协程 + Result）
      */
-    private inline fun <reified T> makeGetRequest(
+    private suspend fun <T> request(
         endpoint: String,
-        parameters: Map<String, String>,
-        responseType: Class<T>,
-        crossinline callback: (Result<T>) -> Unit
-    ) {
-        val urlBuilder = buildWeatherUrl(*endpoint.split("/").toTypedArray())
-            .addQueryParameter("key", apiKey)
+        params: Map<String, String>,
+        classOfT: Class<T>
+    ): Result<T> = withContext(Dispatchers.IO) {
+        try {
+            val urlBuilder = buildWeatherUrl(*endpoint.split("/").toTypedArray())
+                .addQueryParameter("key", apiKey)
 
-        parameters.forEach { (key, value) ->
-            urlBuilder.addQueryParameter(key, value)
-        }
-
-        val request = Request.Builder()
-            .url(urlBuilder.build())
-            .get()
-            .build()
-
-        client.newCall(request).enqueue(createCallback(responseType, callback))
-    }
-
-    /**
-     * 创建统一回调处理器
-     */
-    private inline fun <reified T> createCallback(responseType: Class<T>, crossinline callback: (Result<T>) -> Unit): Callback {
-        return object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                callback(Result.failure(e))
+            params.forEach { (k, v) ->
+                urlBuilder.addQueryParameter(k, v)
             }
 
-            override fun onResponse(call: Call, response: Response) {
-                handleResponse(response, responseType, callback)
+            val request = Request.Builder()
+                .url(urlBuilder.build())
+                .get()
+                .build()
+
+            val response = client.newCall(request).execute()
+            val body = response.body?.string()
+
+            if (!response.isSuccessful) {
+                return@withContext Result.failure(
+                    IOException("Request failed: HTTP ${response.code}")
+                )
             }
+
+            if (body.isNullOrEmpty()) {
+                return@withContext Result.failure(
+                    IOException("Empty response body")
+                )
+            }
+
+            return@withContext try {
+                val result = gson.fromJson(body, classOfT)
+                Result.success(result)
+            } catch (e: Exception) {
+                Result.failure(IOException("JSON parse error: ${e.message}"))
+            }
+
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 
+
     /**
-     * 构建天气API基础URL
+     * 统一构建 URL
      */
     private fun buildWeatherUrl(vararg paths: String): HttpUrl.Builder {
         val builder = HttpUrl.Builder()
@@ -96,35 +102,12 @@ class WeatherApiService(private val client: OkHttpClient, private val apiKey: St
             .host("api.seniverse.com")
             .addPathSegment("v3")
 
-        paths.forEach { path ->
-            // 处理包含"/"的路径段
-            path.split("/").filter { it.isNotEmpty() }.forEach { segment ->
-                builder.addPathSegment(segment)
+        paths.forEach { p ->
+            p.split("/").filter { it.isNotEmpty() }.forEach { seg ->
+                builder.addPathSegment(seg)
             }
         }
 
         return builder
-    }
-
-    /**
-     * 统一处理响应结果
-     */
-    private inline fun <reified T> handleResponse(
-        response: Response,
-        clazz: Class<T>,
-        callback: (Result<T>) -> Unit
-    ) {
-        response.body?.string()?.let { responseBody ->
-            if (response.isSuccessful) {
-                try {
-                    val result = gson.fromJson(responseBody, clazz)
-                    callback(Result.success(result))
-                } catch (e: Exception) {
-                    callback(Result.failure(IOException("JSON parse error: ${e.message}")))
-                }
-            } else {
-                callback(Result.failure(IOException("Request failed with code: ${response.code}")))
-            }
-        } ?: callback(Result.failure(IOException("Empty response body")))
     }
 }

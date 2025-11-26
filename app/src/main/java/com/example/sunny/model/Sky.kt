@@ -29,6 +29,6 @@ private val sky = mapOf(
     "26" to Sky("浮尘", R.drawable.ic_fog, R.drawable.bg_fog)
 )
 
-fun getSky(code: String): Sky {
+fun getSky(code: String?): Sky {
     return sky[code] ?: sky["0"]!!
 }
