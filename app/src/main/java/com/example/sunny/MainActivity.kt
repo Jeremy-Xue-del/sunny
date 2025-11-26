@@ -11,9 +11,9 @@ import androidx.core.app.ActivityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
+import com.example.sunny.adapter.ForecastAdapter
+import com.example.sunny.adapter.TimeAdapter
 import com.example.sunny.databinding.ActivityMainBinding
-import com.example.sunny.databinding.ForecastItemBinding
-import com.example.sunny.databinding.TimeItemBinding
 import com.example.sunny.model.DailyResponse
 import com.example.sunny.model.HourlyResponse
 import com.example.sunny.model.WeatherResponse
@@ -130,34 +130,19 @@ class MainActivity : AppCompatActivity() {
     private fun upDataHourly(data: HourlyResponse) {
         val hourlies = data.results?.first()?.hourly
         val timeLayout = binding.timeInclude.timeLayout
-        if (hourlies != null) {
-            timeLayout.removeAllViews()
-            for (hourly in hourlies) {
-                val timeItem = TimeItemBinding.inflate(layoutInflater)
-                timeItem.time.text = hourly.time?.substring(11, 16) ?: "--:--"
-                timeItem.text.text = hourly.text ?: "--"
-                timeItem.wenDu.text = hourly.temperature ?: "--"
-                val sky = getSky(hourly.code)
-                timeItem.tuBiao.setImageResource(sky.icon)
-                timeLayout.addView(timeItem.root)
-            }
+        val adapter = hourlies?.let { TimeAdapter(it) }
+        if (adapter != null) {
+            timeLayout.adapter = adapter
         }
+
     }
 
     private fun upDataDaily(data: DailyResponse) {
         val dailies = data.results?.first()?.daily
         val dailyLayout = binding.forecastInclude.forecastLayout
-        if (dailies != null) {
-            dailyLayout.removeAllViews()
-            for (daily in dailies) {
-                val dailyItem = ForecastItemBinding.inflate(layoutInflater)
-                dailyItem.dateInfo.text = daily.date ?: "xx-xx"
-                dailyItem.skyInfo.text = "${daily.textDay ?: "--"}/${daily.textNight ?: "--"}"
-                dailyItem.temperatureInfo.text = "${daily.low ?: "--"}/${daily.high ?: "--"}"
-                val sky = getSky(daily.codeDay)
-                dailyItem.skyIcon.setImageResource(sky.icon)
-                dailyLayout.addView(dailyItem.root)
-            }
+        val adapter = dailies?.let { ForecastAdapter(it) }
+        if (adapter != null) {
+            dailyLayout.adapter = adapter
         }
     }
 
