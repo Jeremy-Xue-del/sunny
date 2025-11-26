@@ -12,7 +12,9 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.sunny.databinding.ActivityMainBinding
+import com.example.sunny.databinding.ForecastItemBinding
 import com.example.sunny.databinding.TimeItemBinding
+import com.example.sunny.model.DailyResponse
 import com.example.sunny.model.HourlyResponse
 import com.example.sunny.model.WeatherResponse
 import com.example.sunny.model.getSky
@@ -66,6 +68,7 @@ class MainActivity : AppCompatActivity() {
             res.onSuccess { data ->
                 upDataCity(data)
                 loadHourlyWeather(city)
+                loadDailyWeather(city)
                 SpUtils.getInstance().putString("city", city)
             }.onFailure { e ->
                 toast("获取天气失败:${e.message}")
@@ -78,6 +81,17 @@ class MainActivity : AppCompatActivity() {
             val res = ApiService.getHourlyWeather(city)
             res.onSuccess { data ->
                 upDataHourly(data)
+            }.onFailure { e ->
+                toast("获取天气失败:${e.message}")
+            }
+        }
+    }
+
+    private fun loadDailyWeather(city: String) {
+        lifecycleScope.launch {
+            val res = ApiService.getDailyWeather(city)
+            res.onSuccess { data ->
+                upDataDaily(data)
             }.onFailure { e ->
                 toast("获取天气失败:${e.message}")
             }
@@ -114,18 +128,35 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun upDataHourly(data: HourlyResponse) {
-        val hourly = data.results?.first()?.hourly
+        val hourlies = data.results?.first()?.hourly
         val timeLayout = binding.timeInclude.timeLayout
-        if (hourly != null) {
+        if (hourlies != null) {
             timeLayout.removeAllViews()
-            for (i in hourly) {
+            for (hourly in hourlies) {
                 val timeItem = TimeItemBinding.inflate(layoutInflater)
-                timeItem.time.text = i.time?.substring(11, 16) ?: "--:--"
-                timeItem.text.text = i.text ?: "--"
-                timeItem.wenDu.text = i.temperature ?: "--"
-                val sky = getSky(i.code)
+                timeItem.time.text = hourly.time?.substring(11, 16) ?: "--:--"
+                timeItem.text.text = hourly.text ?: "--"
+                timeItem.wenDu.text = hourly.temperature ?: "--"
+                val sky = getSky(hourly.code)
                 timeItem.tuBiao.setImageResource(sky.icon)
                 timeLayout.addView(timeItem.root)
+            }
+        }
+    }
+
+    private fun upDataDaily(data: DailyResponse) {
+        val dailies = data.results?.first()?.daily
+        val dailyLayout = binding.forecastInclude.forecastLayout
+        if (dailies != null) {
+            dailyLayout.removeAllViews()
+            for (daily in dailies) {
+                val dailyItem = ForecastItemBinding.inflate(layoutInflater)
+                dailyItem.dateInfo.text = daily.date ?: "xx-xx"
+                dailyItem.skyInfo.text = "${daily.textDay ?: "--"}/${daily.textNight ?: "--"}"
+                dailyItem.temperatureInfo.text = "${daily.low ?: "--"}/${daily.high ?: "--"}"
+                val sky = getSky(daily.codeDay)
+                dailyItem.skyIcon.setImageResource(sky.icon)
+                dailyLayout.addView(dailyItem.root)
             }
         }
     }

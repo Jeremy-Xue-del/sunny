@@ -1,6 +1,7 @@
 package com.example.sunny.service
 
 import com.example.sunny.model.CitySearchResponse
+import com.example.sunny.model.DailyResponse
 import com.example.sunny.model.HourlyResponse
 import com.example.sunny.model.WeatherResponse
 import com.google.gson.Gson
@@ -57,6 +58,21 @@ class WeatherApiService(
                 "hours" to "24"
             ),
             classOfT = HourlyResponse::class.java
+        )
+
+    suspend fun getDailyWeather(
+        location: String,
+    ): Result<DailyResponse> =
+        request(
+            endpoint = "weather/daily.json",
+            params = mapOf(
+                "location" to location,
+                "language" to "zh-Hans",
+                "unit" to "c",
+                "start" to "0",
+                "days" to "15"
+            ),
+            classOfT = DailyResponse::class.java
         )
 
 

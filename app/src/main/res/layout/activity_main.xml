@@ -24,6 +24,10 @@
             <include
                 android:id="@+id/timeInclude"
                 layout="@layout/time" />
+
+            <include
+                android:id="@+id/forecastInclude"
+                layout="@layout/forecast" />
         </LinearLayout>
     </ScrollView>
 
