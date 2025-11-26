@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit
 
 class SunnyApplication : Application() {
     companion object {
-        const val TOKEN = "SWavoyrHoqYLY55Fk"
+        const val TOKEN = "SnHFdiU16x7JOtuaB"
         lateinit var context: Context
         lateinit var okHttpClient: OkHttpClient
     }

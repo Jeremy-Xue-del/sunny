@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Bundle
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -13,6 +12,8 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.sunny.databinding.ActivityMainBinding
+import com.example.sunny.databinding.TimeItemBinding
+import com.example.sunny.model.HourlyResponse
 import com.example.sunny.model.WeatherResponse
 import com.example.sunny.model.getSky
 import com.example.sunny.service.ApiService
@@ -50,7 +51,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupStatusBarHeight() {
-        val titleLayout = binding.root.findViewById<ConstraintLayout>(R.id.title)
+        val titleLayout = binding.nowInclude.title
         ViewCompat.setOnApplyWindowInsetsListener(titleLayout) { _, insets ->
             val statusBarInsets = insets.getInsets(WindowInsetsCompat.Type.statusBars())
             val layoutParams = titleLayout.layoutParams as ConstraintLayout.LayoutParams
@@ -64,7 +65,19 @@ class MainActivity : AppCompatActivity() {
             val res = ApiService.getCurrentWeather(city)
             res.onSuccess { data ->
                 upDataCity(data)
+                loadHourlyWeather(city)
                 SpUtils.getInstance().putString("city", city)
+            }.onFailure { e ->
+                toast("获取天气失败:${e.message}")
+            }
+        }
+    }
+
+    private fun loadHourlyWeather(city: String) {
+        lifecycleScope.launch {
+            val res = ApiService.getHourlyWeather(city)
+            res.onSuccess { data ->
+                upDataHourly(data)
             }.onFailure { e ->
                 toast("获取天气失败:${e.message}")
             }
@@ -75,22 +88,46 @@ class MainActivity : AppCompatActivity() {
         val now = data.results?.first()?.now
         val location = data.results?.first()?.location
         if (location != null) {
-            val title = binding.root.findViewById<TextView>(R.id.placeName)
+            val title = binding.nowInclude.placeName
             title.text = location.name
         }
         if (now != null) {
-            val currentTemp = binding.root.findViewById<TextView>(R.id.currentTemp)
+
+            val currentTemp = binding.nowInclude.currentTemp
             currentTemp.text = now.temperature ?: "--"
-            val currentSky = binding.root.findViewById<TextView>(R.id.currentSky)
+            val currentSky = binding.nowInclude.currentSky
             currentSky.text = now.text ?: "--"
-            
-            val nowLayout = binding.root.findViewById<ConstraintLayout>(R.id.nowLayout)
-            nowLayout.let{
+            val currentApparent = binding.nowInclude.currentApparent
+            currentApparent.text = now.feelsLike ?: "--"
+            val currentPressure = binding.nowInclude.currentPressure
+            currentPressure.text = now.pressure ?: "--"
+
+            val currentHumidity = binding.nowInclude.currentHumidity
+            currentHumidity.text = now.humidity ?: "--"
+            val nowLayout = binding.nowInclude.nowLayout
+            nowLayout.let {
                 val sky = getSky(now.code)
                 nowLayout.setBackgroundResource(sky.bg)
             }
         }
 
+    }
+
+    private fun upDataHourly(data: HourlyResponse) {
+        val hourly = data.results?.first()?.hourly
+        val timeLayout = binding.timeInclude.timeLayout
+        if (hourly != null) {
+            timeLayout.removeAllViews()
+            for (i in hourly) {
+                val timeItem = TimeItemBinding.inflate(layoutInflater)
+                timeItem.time.text = i.time?.substring(11, 16) ?: "--:--"
+                timeItem.text.text = i.text ?: "--"
+                timeItem.wenDu.text = i.temperature ?: "--"
+                val sky = getSky(i.code)
+                timeItem.tuBiao.setImageResource(sky.icon)
+                timeLayout.addView(timeItem.root)
+            }
+        }
     }
 
     /**
@@ -102,17 +139,22 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        fusedLocationClient.getCurrentLocation(
-            Priority.PRIORITY_HIGH_ACCURACY,
-            null
-        ).addOnSuccessListener { location: Location? ->
+        try {
+            fusedLocationClient.getCurrentLocation(
+                Priority.PRIORITY_HIGH_ACCURACY,
+                null
+            ).addOnSuccessListener { location: Location? ->
 
-            location?.let {
-                val city = "${it.latitude},${it.longitude}"
-                loadWeather(city)
-            } ?: showPlaceSelectionInterface()
+                location?.let {
+                    val city = "${it.latitude},${it.longitude}"
+                    loadWeather(city)
+                } ?: showPlaceSelectionInterface()
 
-        }.addOnFailureListener {
+            }.addOnFailureListener {
+                showPlaceSelectionInterface()
+            }
+        } catch (_: SecurityException) {
+            // 处理安全异常，比如显示选择界面
             showPlaceSelectionInterface()
         }
     }

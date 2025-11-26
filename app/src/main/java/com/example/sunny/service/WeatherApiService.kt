@@ -1,6 +1,7 @@
 package com.example.sunny.service
 
 import com.example.sunny.model.CitySearchResponse
+import com.example.sunny.model.HourlyResponse
 import com.example.sunny.model.WeatherResponse
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
@@ -41,6 +42,21 @@ class WeatherApiService(
                 "unit" to "c"
             ),
             classOfT = WeatherResponse::class.java
+        )
+
+    suspend fun getHourlyWeather(
+        location: String,
+    ): Result<HourlyResponse> =
+        request(
+            endpoint = "weather/hourly.json",
+            params = mapOf(
+                "location" to location,
+                "language" to "zh-Hans",
+                "unit" to "c",
+                "start" to "0",
+                "hours" to "24"
+            ),
+            classOfT = HourlyResponse::class.java
         )
 
 

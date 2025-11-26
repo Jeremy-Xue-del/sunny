@@ -17,7 +17,13 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <include layout="@layout/activity_now" />
+            <include
+                android:id="@+id/nowInclude"
+                layout="@layout/activity_now" />
+
+            <include
+                android:id="@+id/timeInclude"
+                layout="@layout/time" />
         </LinearLayout>
     </ScrollView>
 
