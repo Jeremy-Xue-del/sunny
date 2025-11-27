@@ -4,12 +4,16 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Bundle
+import android.view.View
+import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
+import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.lifecycleScope
 import com.example.sunny.adapter.ForecastAdapter
 import com.example.sunny.adapter.TimeAdapter
@@ -41,6 +45,26 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         setupStatusBarHeight()
 
+        // 添加按钮点击监听器
+        binding.nowInclude.button.setOnClickListener {
+            binding.drawerLayout.openDrawer(GravityCompat.START)
+        }
+        binding.drawerLayout.addDrawerListener(object : DrawerLayout.DrawerListener {
+            override fun onDrawerSlide(drawerView: View, slideOffset: Float) {}
+
+            override fun onDrawerOpened(drawerView: View) {}
+
+            override fun onDrawerStateChanged(newState: Int) {}
+
+            override fun onDrawerClosed(drawerView: View) {
+                val manager = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+                manager.hideSoftInputFromWindow(
+                    drawerView.windowToken,
+                    InputMethodManager.HIDE_NOT_ALWAYS
+                )
+            }
+        })
+
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         val savedCity = SpUtils.getInstance().getString("city")
@@ -49,7 +73,18 @@ class MainActivity : AppCompatActivity() {
         } else {
             getLocationFromGPS()
         }
+        // 初始化PlaceFragment并设置监听器
+        initPlaceFragment()
+    }
 
+    private fun initPlaceFragment() {
+        val placeFragment = binding.placeFragment.getFragment<PlaceFragment>()
+        placeFragment.setOnCitySelectListener { city ->
+            if (city.name != null) {
+                loadWeather(city.name)
+                binding.drawerLayout.closeDrawers()
+            }
+        }
     }
 
     private fun setupStatusBarHeight() {
@@ -177,9 +212,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun showPlaceSelectionInterface() {
         val placeFragment = PlaceFragment()
-        supportFragmentManager.beginTransaction()
-            .replace(binding.root.id, placeFragment)
-            .commit()
+        placeFragment.setOnCitySelectListener { city ->
+            if (city.name != null) {
+                loadWeather(city.name)
+            }
+
+        }
     }
 
     /**

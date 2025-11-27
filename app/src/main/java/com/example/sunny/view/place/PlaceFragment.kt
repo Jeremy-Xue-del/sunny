@@ -1,6 +1,9 @@
 package com.example.sunny.view.place
 
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -10,10 +13,12 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.sunny.adapter.PlaceAdapter
 import com.example.sunny.databinding.FragmentPlaceBinding
 import com.example.sunny.model.CityResult
 import com.example.sunny.service.ApiService
 import com.example.sunny.model.CitySearchResponse
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 class PlaceFragment : Fragment() {
@@ -25,6 +30,13 @@ class PlaceFragment : Fragment() {
     private val cityList = mutableListOf<CityResult>()
     private var toast: Toast? = null
 
+    private var citySelectListener: ((CityResult) -> Unit)? = null
+    private var searchJob: Job? = null
+    
+    companion object {
+        private const val TAG = "PlaceFragment"
+    }
+    
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -53,6 +65,9 @@ class PlaceFragment : Fragment() {
 
     private fun setupRecyclerView() {
         placeAdapter = PlaceAdapter(cityList)
+        placeAdapter.setOnItemClickListener { city ->
+            citySelectListener?.invoke(city)
+        }
         binding.recyclerView.apply {
             layoutManager = LinearLayoutManager(context)
             adapter = placeAdapter
@@ -67,15 +82,35 @@ class PlaceFragment : Fragment() {
             }
             true
         }
+
+        // 添加文本变化监听器，实现实时搜索功能
+        binding.searchPlaceEdit.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+
+            override fun afterTextChanged(s: Editable?) {
+                val query = s.toString().trim()
+                Log.d(TAG, "文本改变，查询内容: '$query'")
+                searchCities(query)
+            }
+        })
     }
 
     private fun searchCities(query: String) {
-        viewLifecycleOwner.lifecycleScope.launch {
-            binding.searchPlaceEdit.isEnabled = false
-
+        if (query.isEmpty()) {
+            // 如果查询为空，清空列表
+            placeAdapter.updateData(emptyList())
+            binding.recyclerView.visibility = View.GONE
+            return
+        }
+        
+        // 取消之前的搜索任务
+        searchJob?.cancel()
+        
+        // 启动新的搜索任务
+        searchJob = viewLifecycleOwner.lifecycleScope.launch {
             val result = ApiService.searchCity(query)
-
-            binding.searchPlaceEdit.isEnabled = true
 
             result.onSuccess {
                 updateCityList(it)
@@ -86,12 +121,9 @@ class PlaceFragment : Fragment() {
     }
 
     private fun updateCityList(response: CitySearchResponse) {
-        val oldList = cityList.toList()
-        cityList.clear()
         response.results?.let { cities ->
-            cityList.addAll(cities)
+            placeAdapter.updateData(cities)
         }
-        placeAdapter.updateDataWithDiff(oldList, cityList)
         binding.recyclerView.visibility = View.VISIBLE
     }
 
@@ -102,9 +134,15 @@ class PlaceFragment : Fragment() {
         }
     }
 
+    // 添加设置城市选择监听器的方法
+    fun setOnCitySelectListener(listener: (CityResult) -> Unit) {
+        citySelectListener = listener
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
         toast?.cancel()
+        searchJob?.cancel()
     }
 }
